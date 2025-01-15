@@ -4,7 +4,6 @@
 import logging
 import sys
 
-from databases import DatabaseURL
 from starlette.config import Config
 
 config = Config(".env")
@@ -19,18 +18,16 @@ API_PREFIX = "/api/v1"
 ENV = config("ENV", cast=str, default="DEV")
 
 # Database[Postgres]
-if ENV == "DEV":
-    DATABASE_URL = config(
-        "DATABASE_URL",
-        cast=DatabaseURL,
-        default="",
-    )
-elif ENV == "PROD":
-    DATABASE_URL = config(
-        "PROD_DATABASE_URL",
-        cast=DatabaseURL,
-        default="",
-    )
+POSTGRES_USERNAME = config("POSTGRES_USERNAME", cast=str, default="")
+POSTGRES_PASSWORD = config("POSTGRES_PASSWORD", cast=str, default="")
+POSTGRES_SERVER = config("POSTGRES_SERVER", cast=str, default="")
+POSTGRES_PORT = config("POSTGRES_PORT", cast=str, default="")
+POSTGRES_DB = config("POSTGRES_DB", cast=str, default="")
+
+if ENV == "PROD":
+    DATABASE_URL = config("PROD_DATABASE_URL", cast=str, default="")
+else:
+    DATABASE_URL = f"postgresql+asyncpg://{POSTGRES_USERNAME}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 
 # JWT

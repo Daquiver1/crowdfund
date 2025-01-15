@@ -12,11 +12,12 @@ from src.decorators.db import (
 )
 from src.errors.database import FailedToCreateEntityError, NotFoundError
 from src.models.project import ProjectCreate, ProjectInDb
+from src.utils.helpers import Helpers
 
 CREATE_PROJECT_QUERY = """
-    INSERT INTO projects (project_id, owner_id, title, description, goal_amount, deadline)
-    VALUES (:project_id, :owner_id, :title, :description, :goal_amount, :deadline)
-    RETURNING project_id, owner_id, title, description, goal_amount, deadline, created_at, updated_at, is_deleted;
+    INSERT INTO projects (id, owner_id, title, description, goal_amount, deadline)
+    VALUES (:id, :owner_id, :title, :description, :goal_amount, :deadline)
+    RETURNING id, owner_id, title, description, goal_amount, deadline, created_at, updated_at, is_deleted;
 """
 
 GET_PROJECT_CONTRIBUTORS_QUERY = """
@@ -24,7 +25,7 @@ GET_PROJECT_CONTRIBUTORS_QUERY = """
         u.username,
     FROM contributions c
     INNER JOIN users u ON c.contributor_id = u.user_id
-    WHERE c.project_id = :project_id
+    WHERE c.id = :id
     AND c.is_deleted = FALSE
     ORDER BY c.created_at DESC;
 """
@@ -32,7 +33,7 @@ GET_PROJECT_CONTRIBUTORS_QUERY = """
 GET_PROJECT_QUERY = """
     WITH project_data AS (
         SELECT
-            p.project_id,
+            p.id,
             p.owner_id,
             p.title,
             p.description,
@@ -40,15 +41,15 @@ GET_PROJECT_QUERY = """
             p.deadline,
             p.created_at,
             p.updated_at,
-            COUNT(DISTINCT c.contributor_id) as contribution_count,
-            ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL) as contributor_usernames
+            COUNT(DISTINCT c.contributor_id) as total_contributions,
+            ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL) as contributors
         FROM projects p
-        LEFT JOIN contributions c ON p.project_id = c.project_id AND c.is_deleted = FALSE
+        LEFT JOIN contributions c ON p.id = c.project_id AND c.is_deleted = FALSE
         LEFT JOIN users u ON c.contributor_id = u.user_id
         WHERE p.is_deleted = FALSE
         {where_clause}
-        GROUP BY 
-            p.project_id,
+        GROUP BY
+            p.id,
             p.owner_id,
             p.title,
             p.description,
@@ -73,8 +74,13 @@ class ProjectRepository(BaseRepository):
     @handle_post_database_exceptions("Project", already_exists_entity="Project title")
     async def create_project(self, *, new_project: ProjectCreate) -> ProjectInDb:
         """Creates a new project."""
+        id_ = await Helpers.generate_uuid()
+        project = new_project.model_dump()
+        project["id"] = id_
+
+        print("project", project)
         created_project = await self.db.fetch_one(
-            query=CREATE_PROJECT_QUERY, values=new_project.model_dump()
+            query=CREATE_PROJECT_QUERY, values=project
         )
         if not created_project:
             raise FailedToCreateEntityError(entity_name="Project.")
@@ -108,8 +114,8 @@ class ProjectRepository(BaseRepository):
         values = {}
 
         if project_id:
-            where_conditions.append("p.project_id = :project_id")
-            values["project_id"] = str(project_id)
+            where_conditions.append("p.id = :id")
+            values["id"] = str(project_id)
 
         if owner_id:
             where_conditions.append("p.owner_id = :owner_id")
@@ -126,14 +132,12 @@ class ProjectRepository(BaseRepository):
         for record in records:
             project_data = dict(record)
 
-            usernames = project_data.get("contributor_usernames")
+            usernames = project_data.get("contributors")
             if usernames is None:
-                project_data["contributor_usernames"] = []
+                project_data["contributors"] = []
             elif isinstance(usernames, str):
                 clean_usernames = usernames.strip("{}").split(",")
-                project_data["contributor_usernames"] = [
-                    u for u in clean_usernames if u
-                ]
+                project_data["contributors"] = [u for u in clean_usernames if u]
 
             projects.append(ProjectInDb(**project_data))
 

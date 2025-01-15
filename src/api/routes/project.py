@@ -1,6 +1,6 @@
 """Project routes."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -92,7 +92,7 @@ async def create_contribution(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found.",
         )
-    if project.deadline < datetime.now():
+    if project.deadline < datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Project deadline has passed.",

@@ -8,6 +8,7 @@ from src.db.repositories.base import BaseRepository
 from src.decorators.db import handle_post_database_exceptions
 from src.errors.database import FailedToCreateEntityError
 from src.models.contribution import ContributionCreate, ContributionInDb
+from src.utils.helpers import Helpers
 
 CREATE_CONTRIBUTION_QUERY = """
     INSERT INTO contributions (id, project_id, contributor_id, amount)
@@ -50,7 +51,10 @@ class ContributionRepository(BaseRepository):
         self, *, project_id: UUID, new_contribution: ContributionCreate
     ) -> ContributionInDb:
         """Creates a new contribution."""
+        id_ = await Helpers.generate_uuid()
         contribution = new_contribution.model_dump()
+        
+        contribution["id"] = id_
         contribution["project_id"] = project_id
 
         created_contribution = await self.db.fetch_one(

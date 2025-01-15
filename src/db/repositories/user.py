@@ -11,6 +11,8 @@ from src.decorators.db import (
     handle_get_database_exceptions,
     handle_post_database_exceptions,
 )
+from src.utils.helpers import Helpers
+
 from src.errors.database import (
     FailedToCreateEntityError,
     IncorrectCredentialsError,
@@ -21,8 +23,8 @@ from src.models.user import UserCreate, UserInDb
 from src.services.auth import AuthService
 
 CREATE_USER_QUERY = """
-    INSERT INTO users (email, first_name, last_name, username, password_hash)
-    VALUES (:email, :first_name, :last_name, :username, :password_hash)
+    INSERT INTO users (user_id, email, first_name, last_name, username, password_hash)
+    VALUES (:user_id, :email, :first_name, :last_name, :username, :password_hash)
     RETURNING user_id, email, first_name, last_name, username, password_hash, created_at, updated_at, is_deleted;
 """
 
@@ -55,16 +57,22 @@ class UserRepository(BaseRepository):
     @handle_post_database_exceptions("User", already_exists_entity="User email")
     async def create_user(self, *, new_user: UserCreate) -> UserInDb:
         """Creates a new user."""
-        created_user = await self.db.fetch_one(
-            query=CREATE_USER_QUERY, values=new_user.model_dump()
-        )
+        id_ = await Helpers.generate_uuid()
+        hashed_password = await AuthService().get_password_hash(new_user.password_hash)
+
+        user = new_user.model_dump()
+
+        user["user_id"] = id_
+        user["password_hash"] = hashed_password
+
+        created_user = await self.db.fetch_one(query=CREATE_USER_QUERY, values=user)
         if not created_user:
             raise FailedToCreateEntityError(entity_name="User.")
         return UserInDb(**created_user)  # type: ignore
 
     async def login(self, user_request: OAuth2PasswordRequestForm) -> AccessToken:
         """Logs in a user."""
-        user = await self.get_user(username=user_request.username)
+        user = await self.get_user(email=user_request.username)
 
         if not user or not await AuthService().verify_password(
             user_request.password, user.password_hash
@@ -94,7 +102,7 @@ class UserRepository(BaseRepository):
             "username": (GET_USER_BY_USERNAME_QUERY, username),
         }
 
-        for field, (query, value) in search_criteria.values():
+        for field, (query, value) in search_criteria.items():
             if value:
                 user_record = await self.db.fetch_one(
                     query=query, values={field: value}

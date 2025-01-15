@@ -74,7 +74,16 @@ def create_users_table() -> None:
         sa.Column("password_hash", sa.String(255), nullable=False),
         sa.Column("username", sa.String(50), nullable=False, unique=True, index=True),
         *timestamps(),
-        *is_deleted(),
+        is_deleted(),
+    )
+    op.execute(
+        """
+        CREATE TRIGGER update_users_modtime
+            BEFORE UPDATE
+            ON users
+            FOR EACH ROW
+        EXECUTE PROCEDURE update_updated_at_column()
+        """
     )
 
 
@@ -97,16 +106,22 @@ def create_projects_table() -> None:
         ),
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("description", sa.String, nullable=False),
-        sa.Column("goal_amount", sa.Integer(12, 2), nullable=False),
-        sa.Column("deadline", sa.DateTime(), nullable=False, index=True),
+        sa.Column("goal_amount", sa.Integer(), nullable=False),
+        sa.Column("deadline", sa.TIMESTAMP(timezone=True), nullable=False, index=True),
         *timestamps(),
-        *is_deleted(),
+        is_deleted(),
     )
     op.create_check_constraint(
         "chk_projects_goal_amount_non_negative", "projects", "goal_amount >= 0"
     )
-    op.create_check_constraint(
-        "chk_projects_deadline_future", "projects", "deadline > NOW()"
+    op.execute(
+        """
+        CREATE TRIGGER update_projects_modtime
+            BEFORE UPDATE
+            ON projects
+            FOR EACH ROW
+        EXECUTE PROCEDURE update_updated_at_column()
+        """
     )
 
 
@@ -123,7 +138,7 @@ def create_contributions_table() -> None:
         sa.Column(
             "project_id",
             postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("projects.project_id", ondelete="CASCADE"),
+            sa.ForeignKey("projects.id", ondelete="CASCADE"),
             nullable=False,
             index=True,
         ),
@@ -134,57 +149,41 @@ def create_contributions_table() -> None:
             nullable=False,
             index=True,
         ),
-        sa.Column("amount", sa.Integer(12, 2), nullable=False),
+        sa.Column("amount", sa.Integer(), nullable=False),
         *timestamps(),
-        *is_deleted(),
+        is_deleted(),
     )
     op.create_check_constraint(
         "chk_contributions_amount_non_negative", "contributions", "amount >= 0"
     )
-
-
-def create_settings_table() -> None:
-    """Create settings table to store various configuration values."""
-    settings = op.create_table(
-        "settings",
-        sa.Column(
-            "id",
-            sa.String(),
-            primary_key=True,
-        ),
-        sa.Column("key", sa.String(50), nullable=False, unique=True, index=True),
-        sa.Column("value", sa.String(255), nullable=False),
-        *timestamps(),
-    )
-    op.bulk_insert(
-        settings,
-        [
-            {
-                "id": "c26ce240-0ccf-47d8-a647-ce8fd578a156",
-                "key": "project_name",
-                "value": "crowdfund",
-            },
-        ],
+    op.execute(
+        """
+        CREATE TRIGGER update_contributions_modtime
+            BEFORE UPDATE
+            ON contributions
+            FOR EACH ROW
+        EXECUTE PROCEDURE update_updated_at_column()
+        """
     )
 
 
 def upgrade() -> None:
     """Upgrade DB."""
+    create_updated_at_trigger()
     create_users_table()
     create_projects_table()
     create_contributions_table()
-    create_settings_table()
 
 
 def downgrade() -> None:
     """Downgrade DB."""
     tables = [
-        "settings",
         "contributions",
         "projects",
-        "profiles",
         "users",
     ]
 
     for table in tables:
         op.execute(f"DROP TABLE IF EXISTS {table}")
+
+    op.execute("DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE")

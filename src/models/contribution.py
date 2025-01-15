@@ -1,6 +1,5 @@
 """Contribution model."""
 
-from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
@@ -18,7 +17,7 @@ class ContributionBase(CoreModel):
     """Base model for Contribution."""
 
     contributor_id: UUID
-    amount: Decimal = Field(..., ge=0.01, description="Minimum contribution is 0.01")
+    amount: int = Field(..., ge=1, description="Minimum contribution is 1")
 
 
 class ContributionCreate(ContributionBase):
@@ -30,7 +29,7 @@ class ContributionCreate(ContributionBase):
 class ContributionPublic(ContributionBase, DateTimeModelMixin, IDModelMixin_):
     """Public model for Contribution."""
 
-    pass
+    project_id: UUID
 
 
 class ContributionInDb(ContributionPublic, IsDeletedModelMixin):
@@ -42,6 +41,4 @@ class ContributionInDb(ContributionPublic, IsDeletedModelMixin):
 class ContributionUpdate(CoreModel):
     """Model for updating a Contribution."""
 
-    amount: Optional[Decimal] = Field(
-        None, ge=0.01, description="Minimum contribution is 0.01"
-    )
+    amount: Optional[int] = Field(None, ge=1, description="Minimum contribution is 1")
