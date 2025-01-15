@@ -47,7 +47,7 @@ def create_users_table() -> None:
             "user_id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False
         ),
         sa.Column("email", sa.String(255), nullable=False, unique=True, index=True),
-        sa.Column("password", sa.String(255), nullable=False),
+        sa.Column("password_hash", sa.String(255), nullable=False),
         *timestamps(),
         *is_deleted(),
     )
