@@ -33,6 +33,14 @@ elif ENV == "PROD":
     )
 
 
+# JWT
+ACCESS_TOKEN_EXPIRE_MINUTES = config(
+    "ACCESS_TOKEN_EXPIRE_MINUTES", cast=int, default=60
+)
+SECRET_KEY = config("SECRET_KEY", cast=str, default="")
+ALGORITHM = config("ALGORITHM", cast=str, default="HS256")
+
+
 def configure_logging() -> None:
     """Configure logging."""
     logging.basicConfig(

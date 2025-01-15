@@ -69,10 +69,10 @@ class UserRepository(BaseRepository):
             "username": (GET_USER_BY_USERNAME_QUERY, username),
         }
 
-        for query, value in search_criteria.values():
+        for field, (query, value) in search_criteria.values():
             if value:
                 user_record = await self.db.fetch_one(
-                    query=query, values={"value": value}
+                    query=query, values={field: value}
                 )
                 if user_record:
                     return UserInDb(**user_record)  # type: ignore

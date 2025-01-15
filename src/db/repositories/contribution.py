@@ -1,5 +1,7 @@
 """Contribution repository."""
 
+from uuid import UUID
+
 from databases import Database
 
 from src.db.repositories.base import BaseRepository
@@ -45,11 +47,14 @@ class ContributionRepository(BaseRepository):
         "Contribution", already_exists_entity="Contribution ID"
     )
     async def create_contribution(
-        self, *, new_contribution: ContributionCreate
+        self, *, project_id: UUID, new_contribution: ContributionCreate
     ) -> ContributionInDb:
         """Creates a new contribution."""
+        contribution = new_contribution.model_dump()
+        contribution["project_id"] = project_id
+
         created_contribution = await self.db.fetch_one(
-            query=CREATE_CONTRIBUTION_QUERY, values=new_contribution.model_dump()
+            query=CREATE_CONTRIBUTION_QUERY, values=contribution
         )
         if not created_contribution:
             raise FailedToCreateEntityError(entity_name="Contribution.")

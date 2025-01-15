@@ -48,9 +48,7 @@ class ProjectRepository(BaseRepository):
         super().__init__(db)
 
     @handle_post_database_exceptions("Project", already_exists_entity="Project title")
-    async def create_project(
-        self, *, new_project: ProjectCreate, owner_id: UUID
-    ) -> ProjectInDb:
+    async def create_project(self, *, new_project: ProjectCreate) -> ProjectInDb:
         """Creates a new project."""
         created_project = await self.db.fetch_one(
             query=CREATE_PROJECT_QUERY, values=new_project.model_dump()
@@ -66,10 +64,10 @@ class ProjectRepository(BaseRepository):
             "project_id": (GET_PROJECT_BY_ID_QUERY, str(project_id)),
         }
 
-        for query, value in search_criteria.values():
+        for field, (query, value) in search_criteria.values():
             if value:
                 project_record = await self.db.fetch_one(
-                    query=query, values={"project_id": value}
+                    query=query, values={field: value}
                 )
                 if project_record:
                     return ProjectInDb(**project_record)  # type: ignore
@@ -89,10 +87,10 @@ class ProjectRepository(BaseRepository):
             "owner_id": (GET_PROJECTS_BY_OWNER_ID_QUERY, str(owner_id)),
         }
 
-        for query, value in search_criteria.values():
+        for field, (query, value) in search_criteria.values():
             if value:
                 projects_records = await self.db.fetch_all(
-                    query=query, values={"owner_id": value}
+                    query=query, values={field: value}
                 )
                 return [ProjectInDb(**project) for project in projects_records]  # type: ignore
 

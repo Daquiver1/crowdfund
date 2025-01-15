@@ -17,7 +17,6 @@ from src.models.core import (
 class ContributionBase(CoreModel):
     """Base model for Contribution."""
 
-    project_id: UUID
     contributor_id: UUID
     amount: Decimal = Field(..., ge=0.01, description="Minimum contribution is 0.01")
 
