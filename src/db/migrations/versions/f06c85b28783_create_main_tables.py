@@ -20,14 +20,36 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def create_updated_at_trigger() -> None:
+    """Update timestamp trigger."""
+    op.execute(
+        """
+        CREATE OR REPLACE FUNCTION update_updated_at_column() RETURNS TRIGGER AS $$
+        BEGIN
+            NEW.updated_at = now();
+            RETURN NEW;
+        END;
+        $$ language 'plpgsql';
+        """
+    )
+
+
 def timestamps(indexed: bool = False) -> Tuple[sa.Column, sa.Column]:
     """Create timestamp in DB."""
     return (
         sa.Column(
-            "created_at", sa.DateTime(), nullable=False, server_default=func.now()
+            "created_at",
+            sa.DateTime(),
+            nullable=False,
+            server_default=func.now(),
+            index=True,
         ),
         sa.Column(
-            "updated_at", sa.DateTime(), nullable=False, server_default=func.now()
+            "updated_at",
+            sa.DateTime(),
+            nullable=False,
+            server_default=func.now(),
+            index=True,
         ),
     )
 
@@ -46,34 +68,10 @@ def create_users_table() -> None:
         sa.Column(
             "user_id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False
         ),
-        sa.Column("email", sa.String(255), nullable=False, unique=True, index=True),
-        sa.Column("password_hash", sa.String(255), nullable=False),
-        *timestamps(),
-        *is_deleted(),
-    )
-
-
-def create_profiles_table() -> None:
-    """Create profiles table for additional user information."""
-    op.create_table(
-        "profiles",
-        sa.Column(
-            "id",
-            postgresql.UUID(as_uuid=True),
-            primary_key=True,
-            nullable=False,
-        ),
-        sa.Column(
-            "user_id",
-            postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("users.user_id", ondelete="CASCADE"),
-            nullable=False,
-            unique=True,
-            index=True,
-        ),
         sa.Column("first_name", sa.String(100), nullable=True),
         sa.Column("last_name", sa.String(100), nullable=True),
         sa.Column("email", sa.String(255), nullable=False, unique=True, index=True),
+        sa.Column("password_hash", sa.String(255), nullable=False),
         sa.Column("username", sa.String(50), nullable=False, unique=True, index=True),
         *timestamps(),
         *is_deleted(),
@@ -173,7 +171,6 @@ def create_settings_table() -> None:
 def upgrade() -> None:
     """Upgrade DB."""
     create_users_table()
-    create_profiles_table()
     create_projects_table()
     create_contributions_table()
     create_settings_table()
