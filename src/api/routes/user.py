@@ -2,9 +2,8 @@
 
 from fastapi import APIRouter, Depends, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
-from src.services.auth import AuthService
 
-from src.api.dependencies.auth import get_super_admin, get_user
+from src.api.dependencies.auth import get_current_user
 from src.api.dependencies.database import get_repository
 from src.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
 from src.db.repositories.user import UserRepository
@@ -53,7 +52,7 @@ async def user_login(
     status_code=status.HTTP_200_OK,
 )
 async def get_current_user(
-    get_user: UserInDb = Depends(get_user),
+    user: UserInDb = Depends(get_current_user),
 ) -> UserInDb:
     """Get the current user."""
-    return get_user
+    return user

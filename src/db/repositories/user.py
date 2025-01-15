@@ -4,14 +4,21 @@ from typing import Optional
 from uuid import UUID
 
 from databases import Database
+from fastapi.security import OAuth2PasswordRequestForm
 
 from src.db.repositories.base import BaseRepository
 from src.decorators.db import (
     handle_get_database_exceptions,
     handle_post_database_exceptions,
 )
-from src.errors.database import FailedToCreateEntityError, NotFoundError
+from src.errors.database import (
+    FailedToCreateEntityError,
+    IncorrectCredentialsError,
+    NotFoundError,
+)
+from src.models.token import AccessToken
 from src.models.user import UserCreate, UserInDb
+from src.services.auth import AuthService
 
 CREATE_USER_QUERY = """
     INSERT INTO users (email, first_name, last_name, username, password_hash)
@@ -54,6 +61,24 @@ class UserRepository(BaseRepository):
         if not created_user:
             raise FailedToCreateEntityError(entity_name="User.")
         return UserInDb(**created_user)  # type: ignore
+
+    async def login(self, user_request: OAuth2PasswordRequestForm) -> AccessToken:
+        """Logs in a user."""
+        user = await self.get_user(username=user_request.username)
+
+        if not user or not await AuthService().verify_password(
+            user_request.password, user.password_hash
+        ):
+            raise IncorrectCredentialsError()
+
+        access_token = AuthService().create_access_token(
+            data={"user_id": str(user.user_id)}
+        )
+
+        return AccessToken(
+            access_token=access_token,
+            token_type="bearer",
+        )
 
     @handle_get_database_exceptions("User")
     async def get_user(

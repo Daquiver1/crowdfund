@@ -7,3 +7,4 @@ class AccessToken(BaseModel):
     """Token model"""
 
     access_token: str = Field(...)
+    token_type: str = Field(...)

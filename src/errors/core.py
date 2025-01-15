@@ -1,5 +1,7 @@
 """Custom error classes for handling database errors."""
 
+from typing import Optional
+
 from starlette import status
 
 
@@ -15,7 +17,7 @@ class CoreError(Exception):
 class InternalServerError(CoreError):
     """Raised when an internal server error occurs."""
 
-    def __init__(self, additional_message: str = None) -> None:
+    def __init__(self, additional_message: Optional[str] = None) -> None:
         """Initializes the error with the entity name and a dynamic message."""
         message = "Internal Server Error"
         if additional_message:
@@ -30,12 +32,12 @@ class InvalidTokenError(CoreError):
         """Initializes the error with the entity name and a dynamic message."""
         message = "Invalid Token: Could not validate credentials"
         super().__init__(message, status.HTTP_400_BAD_REQUEST)
-        
+
 
 class ValueError(CoreError):
     """Raised when an entity is not found in the database."""
 
-    def __init__(self, additional_message: str = None) -> None:
+    def __init__(self, additional_message: Optional[str] = None) -> None:
         """Initializes the error with the entity name and a dynamic message."""
         message = "Value Error"
         if additional_message:

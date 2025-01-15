@@ -1,11 +1,8 @@
 """Core data that exist in all Models."""
 
-# Standard library imports
 from datetime import datetime, timezone
 from typing import Type
 from uuid import UUID
-
-# Third party imports
 from pydantic import BaseModel, Field
 
 from src.db.repositories.base import BaseRepository

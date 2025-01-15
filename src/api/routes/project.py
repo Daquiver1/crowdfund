@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from src.api.dependencies.auth import get_super_admin, get_user
+from src.api.dependencies.auth import get_current_user
 from src.api.dependencies.database import get_repository
 from src.db.repositories.contribution import ContributionRepository
 from src.db.repositories.project import ProjectRepository
@@ -16,6 +16,7 @@ from src.models.contribution import (
     ContributionPublic,
 )
 from src.models.project import ProjectCreate, ProjectInDb, ProjectPublic
+from src.models.user import UserInDb
 
 project_router = APIRouter()
 
@@ -28,8 +29,14 @@ project_router = APIRouter()
 async def create_project(
     new_project: ProjectCreate,
     project_repo: ProjectRepository = Depends(get_repository(ProjectRepository)),
+    user: UserInDb = Depends(get_current_user),
 ) -> ProjectInDb:
     """Register a new project."""
+    if user.user_id != new_project.owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only create projects for yourself.",
+        )
     return await project_repo.create_project(new_project=new_project)
 
 
@@ -71,9 +78,10 @@ async def create_contribution(
         get_repository(ContributionRepository)
     ),
     project_repo: ProjectRepository = Depends(get_repository(ProjectRepository)),
+    user: UserInDb = Depends(get_current_user),
 ) -> ContributionInDb:
     """Register a new contribution."""
-    project = await project_repo.get_project(project_id=new_contribution.project_id)
+    project = await project_repo.get_project(project_id=project_id)
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
