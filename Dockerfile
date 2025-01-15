@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Install & upgrade system dependencies
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends netcat-openbsd gcc \
+  && apt-get -y install netcat-openbsd gcc libpq-dev  \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 

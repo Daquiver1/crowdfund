@@ -3,7 +3,6 @@
 /lib
 .DS_Store
 **/__pycache__
-backend_env/
 venv/
 .vscode/
-/backup/
+.env

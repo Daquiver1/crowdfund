@@ -11,11 +11,19 @@ services:
       - .:/crowdfund
     ports:
       - 8008:8000
+    depends_on:
+      - db
 
-  redis:
-    image: redis:latest
+  db:
+    image: postgres:15-alpine
     volumes:
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6379:6379"
+      - postgres_data:/var/lib/postgresql/data/
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+
+volumes:
+  postgres_data:

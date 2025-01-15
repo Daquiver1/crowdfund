@@ -50,7 +50,12 @@ async def get_projects(
     project_repo: ProjectRepository = Depends(get_repository(ProjectRepository)),
 ) -> list[ProjectInDb]:
     """Get the current user."""
-    return await project_repo.get_projects(owner_id=owner_id)
+    if owner_id:
+        projects = await project_repo.get_owner_projects_efficient(owner_id=owner_id)
+    else:
+        projects = await project_repo.get_all_projects_efficient()
+
+    return projects
 
 
 @project_router.get(
@@ -63,7 +68,7 @@ async def get_project_by_id(
     project_repo: ProjectRepository = Depends(get_repository(ProjectRepository)),
 ) -> ProjectInDb:
     """Get the current user."""
-    return await project_repo.get_project(project_id=project_id)
+    return await project_repo.get_single_project_efficient(project_id=project_id)
 
 
 @project_router.post(
@@ -81,7 +86,7 @@ async def create_contribution(
     user: UserInDb = Depends(get_current_user),
 ) -> ContributionInDb:
     """Register a new contribution."""
-    project = await project_repo.get_project(project_id=project_id)
+    project = await project_repo.get_single_project_efficient(project_id=project_id)
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

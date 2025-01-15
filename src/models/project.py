@@ -35,6 +35,12 @@ class ProjectCreate(ProjectBase):
 class ProjectPublic(ProjectBase, DateTimeModelMixin, IDModelMixin_, UserIDModelMixin):
     """Public model for Project."""
 
+    title: str = Field(..., min_length=3, max_length=255)
+    description: str = Field(..., min_length=10)
+    goal_amount: Decimal = Field(..., ge=0)
+    owner_id: UUID
+    deadline: FutureDatetime = Field(..., description="Deadline must be a future date")
+
     total_contributions: Decimal = Field(default=0, ge=0)
     contributors: list[str] = Field(default_factory=list)
 
