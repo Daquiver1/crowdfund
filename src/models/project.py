@@ -12,7 +12,6 @@ from src.models.core import (
     DateTimeModelMixin,
     IDModelMixin_,
     IsDeletedModelMixin,
-    UserIDModelMixin,
 )
 
 
